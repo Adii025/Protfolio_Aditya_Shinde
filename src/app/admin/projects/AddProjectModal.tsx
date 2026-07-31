@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { Upload, X } from "lucide-react";
 
 export default function AddProjectModal({
@@ -75,49 +74,49 @@ export default function AddProjectModal({
     setLoading(true);
 
     try {
-      const uploadedUrls: string[] = [];
+      // 1. Upload images to our local upload route
+      const formData = new FormData();
+      images.forEach((image) => formData.append("files", image));
 
-      for (const image of images) {
-        const fileName = `${Date.now()}-${Math.random()}-${image.name}`;
+      const uploadRes = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-        const { error: uploadError } =
-          await supabase.storage
-            .from("projects")
-            .upload(fileName, image);
-
-        if (uploadError) continue;
-
-        const { data } = supabase.storage
-          .from("projects")
-          .getPublicUrl(fileName);
-
-        uploadedUrls.push(data.publicUrl);
+      if (!uploadRes.ok) {
+        showToast("Gagal upload gambar");
+        setLoading(false);
+        return;
       }
 
-      const { data, error } = await supabase
-        .from("projects")
-        .insert([
-          {
-            title,
-            description: desc,
-            live_url: live || null,
-            github_url: github || null,
-            technologies: tech,
-            key_features: features,
-            image_url: uploadedUrls[0] || null,
-            image_urls: uploadedUrls,
-          },
-        ])
-        .select()
-        .single();
+      const uploadData = await uploadRes.json();
+      const uploadedUrls: string[] = uploadData.urls || [];
 
-      if (error) {
+      // 2. Save the project record via our local API route
+      const projectRes = await fetch("/api/admin/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description: desc,
+          live_url: live || null,
+          github_url: github || null,
+          technologies: tech,
+          key_features: features,
+          image_url: uploadedUrls[0] || null,
+          image_urls: uploadedUrls,
+        }),
+      });
+
+      if (!projectRes.ok) {
         showToast("Gagal simpan");
         setLoading(false);
         return;
       }
 
-      onAdd(data);
+      const newProject = await projectRes.json();
+
+      onAdd(newProject);
 
       setTitle("");
       setDesc("");

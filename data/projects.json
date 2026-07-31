@@ -1,0 +1,58 @@
+[
+  {
+    "id": "1785484818681-86logti",
+    "title": "Vani-AI-Asistance",
+    "description": "src/\n│\n├── assets/\n│   ├── ai.png\n│   ├── aiVoice.gif\n│   ├── speak.gif\n│\n├── Context/\n│   └── UserContex.jsx\n│\n├── App.jsx\n├── App.css\n├── gemini.js\n├── main.jsx",
+    "live_url": " https://vani-virtual-assistance.netlify.app",
+    "github_url": "https://github.com/Adii025/vani_Ai_Assistance",
+    "technologies": "Frontend React.js Vite CSS3 React Icons AI Integration Google Gemini API Browser APIs Speech Recognition API Speech Synthesis API",
+    "key_features": "🎤 Voice Recognition using Web Speech API 🤖 AI-Powered Responses using Google Gemini 🔊 Text-to-Speech Response Output ⚡ Fast React + Vite Performance 🌐 Open Websites Using Voice Commands 📱 Responsive User Interface 🎨 Modern AI Assistant Design",
+    "image_url": "/uploads/1785484818211-5psmd1-Screenshot-2026-06-17-105245.png",
+    "image_urls": [
+      "/uploads/1785484818211-5psmd1-Screenshot-2026-06-17-105245.png"
+    ],
+    "created_at": "2026-07-31T08:00:18.681Z"
+  },
+  {
+    "id": "1785487938656-hh0wwrp",
+    "title": "Token-bucket-rate-limiter",
+    "description": "ratelimiter/\n│\n├── src/\n│   └── main/\n│       └── java/\n│           └── com/\n│               └── ratelimiter/\n│\n│                   ├── Main.java\n│                   │   • Application entry point\n│                   │   • Reads environment variables\n│                   │   • Creates ConnectionPool\n│                   │   • Loads ConfigStore\n│                   │   • Creates RateLimiterService\n│                   │   • Starts HTTP Server\n│\n│                   ├── Server.java\n│                   │   • Java HttpServer\n│                   │   • REST APIs\n│                   │       POST /check\n│                   │       GET /metrics\n│                   │       GET /configs\n│                   │   • Serves dashboard files\n│                   │\n│                   ├── RateLimiterService.java\n│                   │   • Central service\n│                   │   • Receives clientId\n│                   │   • Reads client configuration\n│                   │   • Chooses algorithm\n│                   │   • Returns allow/deny decision\n│                   │\n│                   ├── TokenBucketLimiter.java\n│                   │   • Token Bucket implementation\n│                   │   • refillTokens()\n│                   │   • allowRequest()\n│                   │\n│                   ├── SlidingWindowLimiter.java\n│                   │   • Sliding Window Log implementation\n│                   │   • Queue of timestamps\n│                   │   • Removes expired entries\n│                   │\n│                   ├── ConfigStore.java\n│                   │   • Loads configuration from PostgreSQL\n│                   │   • Caches configs in HashMap\n│                   │   • Periodic refresh\n│                   │\n│                   ├── ConnectionPool.java\n│                   │   • Simple JDBC connection pool\n│                   │   • Borrow connection\n│                   │   • Return connection\n│                   │   • Thread-safe\n│                   │\n│                   └── model/\n│                       ├── ClientConfig.java\n│                       │   • clientId\n│                       │   • algorithm\n│                       │   • capacity\n│                       │   • refillRate\n│                       │   • windowSize\n│                       │   • maxRequests\n│                       │\n│                       └── Decision.java\n│                           • allowed\n│                           • remainingTokens\n│                           • retryAfter\n│                           • timestamp\n│\n├── public/\n│   ├── index.html\n│   │   • Dashboard\n│   │\n│   ├── style.css\n│   │   • Dashboard styling\n│   │\n│   └── app.js\n│       • Fetch APIs\n│       • Live charts\n│       • Display metrics\n│\n├── loadtest/\n│   └── LoadTest.java\n│       • Creates hundreds/thousands of threads\n│       • Measures throughput\n│       • Prints requests/sec\n│       • Success vs rejected\n│\n├── schema.sql\n│   • PostgreSQL tables\n│       clients\n│       rate_limit_config\n│       metrics\n│\n├── lib/\n│   └── postgresql-42.7.2.jar\n│       • JDBC Driver\n│\n├── Dockerfile\n│   • Builds project\n│   • Copies JDBC driver\n│   • Exposes HTTP port\n│   • Runs Main class\n│\n├── README.md\n│   • Setup\n│   • Environment variables\n│   • API documentation\n│   • Load testing\n│\n└── .env (optional)\n    • DB_URL\n    • DB_USER\n    • DB_PASSWORD\n    • PORT",
+    "live_url": "https://token-bucket-rate-limiter-with-dash.vercel.app/",
+    "github_url": "https://github.com/Adii025/Token-bucket-rate-limiter-with-dashboard",
+    "technologies": "Java, PostgreSQL",
+    "key_features": "Two algorithms, selectable per client key: token_bucket — bucket refills continuously at a configured rate; bursts allowed up to a cap. sliding_window — allows up to N requests in any trailing time window, based on real timestamps. Persistent state — bucket/window state lives in Postgres, not JVM memory. Restarting the service picks up exactly where it left off. Admin API to configure rate/burst/algorithm per client at runtime. Dashboard — check keys, configure clients, and watch live stats, all in the browser. Load-tested for correctness under concurrency: a single key hammered by 500 threads at once still never over-spends its bucket.",
+    "image_url": "/uploads/1785487938437-2gvvu6-Screenshot-2026-07-06-170159.png",
+    "image_urls": [
+      "/uploads/1785487938437-2gvvu6-Screenshot-2026-07-06-170159.png"
+    ],
+    "created_at": "2026-07-31T08:52:18.656Z"
+  },
+  {
+    "id": "1785488246232-lkti8oi",
+    "title": "Weather-Application-using-react",
+    "description": "Weather Application using React – Developed a responsive weather forecasting application using React.js that provides real-time weather information for any city. Integrated a weather API to display temperature, humidity, wind speed, and weather conditions with a clean, user-friendly interface. Implemented dynamic search functionality, asynchronous API calls, and responsive design to ensure a seamless experience across desktop and mobile devices.",
+    "live_url": null,
+    "github_url": "https://github.com/Adii025/Weather-Application-using-react",
+    "technologies": "React",
+    "key_features": "Real time Weather",
+    "image_url": "/uploads/1785488246108-bcnes7-weatherapp.jpg",
+    "image_urls": [
+      "/uploads/1785488246108-bcnes7-weatherapp.jpg"
+    ],
+    "created_at": "2026-07-31T08:57:26.236Z"
+  },
+  {
+    "id": "1785488421738-fo23uxf",
+    "title": "Travel booking website",
+    "description": "Travel Booking Website is a responsive web application developed using React.js that provides an intuitive platform for users to explore and book travel destinations. The application features a modern user interface where users can browse popular destinations, view travel packages, and access detailed trip information. Built with a component-based architecture, it delivers a fast and seamless user experience across desktop and mobile devices. The project demonstrates front-end development skills, responsive design principles, and dynamic UI development using React.",
+    "live_url": null,
+    "github_url": "https://github.com/Adii025/Traval-Bokking",
+    "technologies": "Html,Css",
+    "key_features": "Features 🌍 Browse popular travel destinations 🔍 Search and explore travel packages 📍 View detailed destination information 📱 Fully responsive design for desktop, tablet, and mobile 🎨 Modern and attractive user interface ⚡ Fast navigation with React 🖼️ Interactive image galleries 📅 Trip booking interface 💰 Display package pricing and travel details ❤️ Easy-to-use and intuitive user experience 🔄 Component-based architecture for maintainability 🚀 Optimized performance with React",
+    "image_url": "/uploads/1785488421630-8lm6d6-Travel.jpg",
+    "image_urls": [
+      "/uploads/1785488421630-8lm6d6-Travel.jpg"
+    ],
+    "created_at": "2026-07-31T09:00:21.738Z"
+  }
+]

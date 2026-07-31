@@ -1,21 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import {
   Lock,
-  Mail,
   Eye,
   EyeOff,
   ShieldCheck,
   Loader2,
+  User,
 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -24,44 +23,55 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const handleLogin = async () => {
+  // Change these credentials to your own
+  const ADMIN_USERNAME = "Aditya";
+  const ADMIN_PASSWORD = "Aditya@5961";
+
+  const handleLogin = () => {
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (!email || !password) {
-      setErrorMsg("Please fill email and password");
+    if (!username || !password) {
+      setErrorMsg("Please enter username and password");
       return;
     }
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Simulate loading
+    setTimeout(() => {
+      setLoading(false);
 
-    setLoading(false);
+      if (
+        username === ADMIN_USERNAME &&
+        password === ADMIN_PASSWORD
+      ) {
+        setSuccessMsg("Login successful! Redirecting...");
 
-    if (error) {
-      setErrorMsg("Invalid email or password");
-    } else {
-      setSuccessMsg("Login success, redirecting...");
-      setTimeout(() => {
-        router.push("/admin/dashboard");
-      }, 800);
-    }
+        // Set a simple session cookie so middleware can protect /admin routes.
+        // Expires in 7 days. Not encrypted — fine for a personal admin panel,
+        // but don't reuse this pattern for anything handling sensitive data.
+        document.cookie = "admin_session=true; path=/; max-age=604800";
+
+        setTimeout(() => {
+          router.push("/admin/dashboard");
+        }, 800);
+      } else {
+        setErrorMsg("Invalid username or password");
+      }
+    }, 800);
   };
 
   return (
     <div className="min-h-screen bg-[#050505] relative overflow-hidden flex items-center justify-center px-4">
-      {/* BG GLOW */}
+      {/* Background Glow */}
       <div className="absolute w-[500px] h-[500px] bg-white/[0.03] blur-[120px] rounded-full top-[-150px] left-[-150px]" />
       <div className="absolute w-[400px] h-[400px] bg-white/[0.02] blur-[120px] rounded-full bottom-[-120px] right-[-100px]" />
 
-      {/* CARD */}
+      {/* Login Card */}
       <div className="relative z-10 w-full max-w-[420px]">
         <div className="rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-xl p-7 sm:p-8 shadow-[0_0_60px_rgba(255,255,255,0.03)]">
-          {/* TOP */}
+          {/* Header */}
           <div className="flex flex-col items-center text-center mb-8">
             <div className="w-16 h-16 rounded-3xl bg-white/[0.06] border border-white/10 flex items-center justify-center mb-4">
               <ShieldCheck size={28} className="text-white" />
@@ -76,43 +86,43 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* SUCCESS */}
+          {/* Success Message */}
           {successMsg && (
             <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
               {successMsg}
             </div>
           )}
 
-          {/* ERROR */}
+          {/* Error Message */}
           {errorMsg && (
             <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {errorMsg}
             </div>
           )}
 
-          {/* EMAIL */}
+          {/* Username */}
           <div className="mb-4">
             <label className="text-sm text-white/50 mb-2 block">
-              Email
+              Username
             </label>
 
             <div className="relative">
-              <Mail
+              <User
                 size={18}
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35"
               />
 
               <input
-                type="email"
-                placeholder="masukan email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Enter username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full h-[56px] rounded-2xl bg-[#0c0c0c] border border-white/10 pl-12 pr-4 text-white outline-none focus:border-white/20 transition"
               />
             </div>
           </div>
 
-          {/* PASSWORD */}
+          {/* Password */}
           <div className="mb-6">
             <label className="text-sm text-white/50 mb-2 block">
               Password
@@ -126,19 +136,20 @@ export default function LoginPage() {
 
               <input
                 type={showPassword ? "text" : "password"}
-                placeholder="masukan password"
+                placeholder="Enter password"
                 value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleLogin();
+                  }
+                }}
                 className="w-full h-[56px] rounded-2xl bg-[#0c0c0c] border border-white/10 pl-12 pr-14 text-white outline-none focus:border-white/20 transition"
               />
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowPassword(!showPassword)
-                }
+                onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-white/35 hover:text-white transition"
               >
                 {showPassword ? (
@@ -150,7 +161,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* BUTTON */}
+          {/* Login Button */}
           <button
             onClick={handleLogin}
             disabled={loading}
@@ -158,10 +169,7 @@ export default function LoginPage() {
           >
             {loading ? (
               <>
-                <Loader2
-                  size={18}
-                  className="animate-spin"
-                />
+                <Loader2 size={18} className="animate-spin" />
                 Signing In...
               </>
             ) : (

@@ -2,16 +2,22 @@
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/app/admin/Sidebar";
-import { supabase } from "@/lib/supabase";
 import { Plus, Trash2, Pencil, X, Upload } from "lucide-react";
 import Swal from "sweetalert2";
 
+type TechItem = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  created_at: string;
+};
+
 export default function TechStackPage() {
-  const [techStacks, setTechStacks] = useState<any[]>([]);
+  const [techStacks, setTechStacks] = useState<TechItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [logo, setLogo] = useState<File | null>(null);
@@ -21,39 +27,22 @@ export default function TechStackPage() {
 
   useEffect(() => {
     fetchTechStacks();
-
-    const channel = supabase
-      .channel("techstack-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "tech_stack",
-        },
-        () => {
-          fetchTechStacks();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const fetchTechStacks = async () => {
-    const { data } = await supabase
-      .from("tech_stack")
-      .select("*");
+    try {
+      const res = await fetch("/api/admin/tech-stack", {
+        cache: "no-store",
+      });
 
-    const sorted = (data || []).sort(
-      (a, b) =>
-        new Date(a.created_at).getTime() -
-        new Date(b.created_at).getTime()
-    );
+      if (res.ok) {
+        const data = await res.json();
+        setTechStacks(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch tech stack:", err);
+    }
 
-    setTechStacks(sorted);
     setLoading(false);
   };
 
@@ -78,49 +67,51 @@ export default function TechStackPage() {
 
     setSaving(true);
 
-    let logoUrl = preview;
+    try {
+      let logoUrl = preview.startsWith("blob:") ? "" : preview;
 
-    if (logo) {
-      const fileName = `tech-${Date.now()}-${logo.name}`;
+      // Upload the logo file if a new one was selected
+      if (logo) {
+        const formData = new FormData();
+        formData.append("files", logo);
 
-      const { error: uploadError } = await supabase.storage
-        .from("tech-stack")
-        .upload(fileName, logo);
+        const uploadRes = await fetch("/api/admin/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!uploadError) {
-        const { data } = supabase.storage
-          .from("tech-stack")
-          .getPublicUrl(fileName);
-
-        logoUrl = data.publicUrl;
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          logoUrl = uploadData.urls?.[0] || "";
+        }
       }
+
+      if (editId) {
+        await fetch(`/api/admin/tech-stack/${editId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, logo_url: logoUrl || null }),
+        });
+      } else {
+        await fetch("/api/admin/tech-stack", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, logo_url: logoUrl || null }),
+        });
+      }
+
+      setSaving(false);
+      setOpen(false);
+      resetForm();
+
+      fetchTechStacks();
+    } catch (err) {
+      console.error("Failed to save tech stack item:", err);
+      setSaving(false);
     }
-
-    if (editId) {
-      await supabase
-        .from("tech_stack")
-        .update({
-          name,
-          logo_url: logoUrl,
-        })
-        .eq("id", editId);
-    } else {
-      await supabase.from("tech_stack").insert([
-        {
-          name,
-          logo_url: logoUrl,
-        },
-      ]);
-    }
-
-    setSaving(false);
-    setOpen(false);
-    resetForm();
-
-    fetchTechStacks();
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     const result = await Swal.fire({
       title: "Delete Tech Stack?",
       text: "Data yang dihapus tidak bisa dikembalikan.",
@@ -137,26 +128,27 @@ export default function TechStackPage() {
 
     if (!result.isConfirmed) return;
 
-    const { error } = await supabase
-      .from("tech_stack")
-      .delete()
-      .eq("id", id);
-
-    if (!error) {
-      setTechStacks((prev) =>
-        prev.filter((item) => item.id !== id)
-      );
-
-      Swal.fire({
-        title: "Deleted!",
-        text: "Tech stack berhasil dihapus.",
-        icon: "success",
-        timer: 1800,
-        showConfirmButton: false,
-        background: "#111",
-        color: "#fff",
+    try {
+      const res = await fetch(`/api/admin/tech-stack/${id}`, {
+        method: "DELETE",
       });
-    } else {
+
+      if (res.ok) {
+        setTechStacks((prev) => prev.filter((item) => item.id !== id));
+
+        Swal.fire({
+          title: "Deleted!",
+          text: "Tech stack berhasil dihapus.",
+          icon: "success",
+          timer: 1800,
+          showConfirmButton: false,
+          background: "#111",
+          color: "#fff",
+        });
+      } else {
+        throw new Error("Delete failed");
+      }
+    } catch {
       Swal.fire({
         title: "Failed",
         text: "Gagal menghapus tech stack.",
@@ -167,10 +159,10 @@ export default function TechStackPage() {
     }
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: TechItem) => {
     setEditId(item.id);
     setName(item.name);
-    setPreview(item.logo_url);
+    setPreview(item.logo_url || "");
     setOpen(true);
   };
 

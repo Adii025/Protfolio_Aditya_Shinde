@@ -3,15 +3,22 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2, Pencil, X, Upload } from "lucide-react";
 import Sidebar from "@/app/admin/Sidebar";
-import { supabase } from "@/lib/supabase";
 import Swal from "sweetalert2";
 
+type Certificate = {
+  id: string;
+  title: string;
+  image_url: string | null;
+  certificate_url: string | null;
+  created_at: string;
+};
+
 export default function CertificatesPage() {
-  const [certificates, setCertificates] = useState<any[]>([]);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [image, setImage] = useState<File | null>(null);
@@ -22,46 +29,31 @@ export default function CertificatesPage() {
 
   useEffect(() => {
     fetchCertificates();
-
-    const channel = supabase
-      .channel("certificates-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "certificates",
-        },
-        () => {
-          fetchCertificates();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const fetchCertificates = async () => {
-  const { data } = await supabase
-    .from("certificates")
-    .select("*")
-    .order("created_at", {
-      ascending: true,
-    });
+    try {
+      const res = await fetch("/api/admin/certificates", {
+        cache: "no-store",
+      });
 
-  setCertificates(data || []);
-  setLoading(false);
-};
+      if (res.ok) {
+        const data = await res.json();
+        setCertificates(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch certificates:", err);
+    }
+
+    setLoading(false);
+  };
 
   const resetForm = () => {
- setTitle("");
-setCertificateUrl("");
-setImage(null);
-setPreview("");
-setCertificateUrl("");
-setEditId(null);
+    setTitle("");
+    setCertificateUrl("");
+    setImage(null);
+    setPreview("");
+    setEditId(null);
   };
 
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,51 +70,58 @@ setEditId(null);
 
     setSaving(true);
 
-    let imageUrl = preview;
+    try {
+      let imageUrl = preview.startsWith("blob:") ? "" : preview;
 
-    if (image) {
-      const fileName = `certificate-${Date.now()}-${image.name}`;
+      if (image) {
+        const formData = new FormData();
+        formData.append("files", image);
 
-      const { error: uploadError } = await supabase.storage
-        .from("certificates")
-        .upload(fileName, image);
+        const uploadRes = await fetch("/api/admin/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!uploadError) {
-        const { data } = supabase.storage
-          .from("certificates")
-          .getPublicUrl(fileName);
-
-        imageUrl = data.publicUrl;
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          imageUrl = uploadData.urls?.[0] || "";
+        }
       }
+
+      if (editId) {
+        await fetch(`/api/admin/certificates/${editId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            image_url: imageUrl || null,
+            certificate_url: certificateUrl || null,
+          }),
+        });
+      } else {
+        await fetch("/api/admin/certificates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            image_url: imageUrl || null,
+            certificate_url: certificateUrl || null,
+          }),
+        });
+      }
+
+      setSaving(false);
+      setOpen(false);
+      resetForm();
+
+      fetchCertificates();
+    } catch (err) {
+      console.error("Failed to save certificate:", err);
+      setSaving(false);
     }
-
-    if (editId) {
-      await supabase
-        .from("certificates")
-        .update({
-  title,
-  image_url: imageUrl,
-  certificate_url: certificateUrl,
-})
-        .eq("id", editId);
-    } else {
-      await supabase.from("certificates").insert([
-  {
-    title,
-    image_url: imageUrl,
-    certificate_url: certificateUrl,
-  },
-]);
-    }
-
-    setSaving(false);
-setOpen(false);
-resetForm();
-
-fetchCertificates();
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     const result = await Swal.fire({
       title: "Delete Certificate?",
       text: "Certificate yang dihapus tidak bisa dikembalikan.",
@@ -139,21 +138,27 @@ fetchCertificates();
 
     if (!result.isConfirmed) return;
 
-    const { error } = await supabase.from("certificates").delete().eq("id", id);
-
-    if (!error) {
-      setCertificates((prev) => prev.filter((item) => item.id !== id));
-
-      Swal.fire({
-        title: "Deleted!",
-        text: "Certificate berhasil dihapus.",
-        icon: "success",
-        timer: 1800,
-        showConfirmButton: false,
-        background: "#111",
-        color: "#fff",
+    try {
+      const res = await fetch(`/api/admin/certificates/${id}`, {
+        method: "DELETE",
       });
-    } else {
+
+      if (res.ok) {
+        setCertificates((prev) => prev.filter((item) => item.id !== id));
+
+        Swal.fire({
+          title: "Deleted!",
+          text: "Certificate berhasil dihapus.",
+          icon: "success",
+          timer: 1800,
+          showConfirmButton: false,
+          background: "#111",
+          color: "#fff",
+        });
+      } else {
+        throw new Error("Delete failed");
+      }
+    } catch {
       Swal.fire({
         title: "Failed",
         text: "Gagal menghapus certificate.",
@@ -164,11 +169,12 @@ fetchCertificates();
     }
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: Certificate) => {
     setTitle(item.title);
-setPreview(item.image_url);
-setCertificateUrl(item.certificate_url || "");
-setEditId(item.id);
+    setPreview(item.image_url || "");
+    setCertificateUrl(item.certificate_url || "");
+    setEditId(item.id);
+    setOpen(true);
   };
 
   return (
@@ -313,20 +319,15 @@ setEditId(item.id);
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl bg-[#0f0f0f] border border-white/10 outline-none mb-5 text-sm"
             />
+
+            {/* CERTIFICATE URL */}
             <input
-  placeholder="Google Drive Certificate Link"
-  value={certificateUrl}
-  onChange={(e) => setCertificateUrl(e.target.value)}
-  className="w-full px-4 py-3 rounded-2xl bg-[#0f0f0f] border border-white/10 outline-none mb-5 text-sm"
-/>
-{/* CERTIFICATE URL */}
-<input
-  type="url"
-  placeholder="Certificate URL (e.g. https://drive.google.com/...)"
-  value={certificateUrl}
-  onChange={(e) => setCertificateUrl(e.target.value)}
-  className="w-full px-4 py-3 rounded-2xl bg-[#0f0f0f] border border-white/10 outline-none mb-5 text-sm"
-/>
+              type="url"
+              placeholder="Certificate URL (e.g. https://drive.google.com/...)"
+              value={certificateUrl}
+              onChange={(e) => setCertificateUrl(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl bg-[#0f0f0f] border border-white/10 outline-none mb-5 text-sm"
+            />
 
             {/* BUTTON */}
             <div className="flex flex-col sm:flex-row justify-end gap-3">

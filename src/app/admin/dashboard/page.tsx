@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/app/admin/Sidebar";
-import { supabase } from "@/lib/supabase";
 import {
   Eye,
   Users,
@@ -12,6 +11,63 @@ import {
   RefreshCcw,
   TrendingUp,
 } from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// DATA SOURCE
+// This file no longer imports or calls Supabase in any way.
+// Replace the body of `fetchDashboard` below with however YOU want to load
+// data: a REST endpoint, a local JSON file, a different DB client, etc.
+// The shape it needs to return is described in `DashboardData` below.
+// ---------------------------------------------------------------------------
+
+type Comment = {
+  id: string | number;
+  name: string;
+  comment: string;
+  likes?: number;
+  created_at: string;
+  is_pinned?: boolean;
+};
+
+type DashboardData = {
+  projects: number;
+  certificates: number;
+  comments: number;
+  pinned: number;
+  recentComments: Comment[];
+};
+
+// Example placeholder data so the UI renders something even before you wire
+// up a real source. Delete this once fetchDashboard talks to real data.
+const FALLBACK_DATA: DashboardData = {
+  projects: 0,
+  certificates: 0,
+  comments: 0,
+  pinned: 0,
+  recentComments: [],
+};
+
+async function loadDashboardData(): Promise<DashboardData> {
+  // Pulls the real project count from the local projects API route.
+  // Certificates, comments, and pinned counts will show 0 until those
+  // features get the same local-storage treatment.
+  let projects = 0;
+
+  try {
+    const res = await fetch("/api/admin/projects", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      projects = Array.isArray(data) ? data.length : 0;
+    }
+  } catch (err) {
+    console.error("Failed to load projects count:", err);
+  }
+
+  return {
+    ...FALLBACK_DATA,
+    projects,
+  };
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -25,82 +81,35 @@ export default function DashboardPage() {
     pinned: 0,
   });
 
-  const [recentComments, setRecentComments] = useState<any[]>([]);
+  const [recentComments, setRecentComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      router.replace("/admin/login");
-      return;
-    }
+    // NOTE: this just marks the page as authorized without checking a real
+    // session. If you want route protection here (not just on the login
+    // page), check your own auth state/cookie/token here and router.push
+    // to /admin/login if it's missing, e.g.:
+    //
+    // const token = localStorage.getItem("admin_token");
+    // if (!token) { router.push("/admin/login"); return; }
 
     setAuthorized(true);
     fetchDashboard();
-  };
+  }, []);
 
   const fetchDashboard = async () => {
+    setLoading(true);
     try {
-      const [
-        projectsRes,
-        certificatesRes,
-        commentsRes,
-        pinnedRes,
-        recentCommentsRes,
-      ] = await Promise.all([
-        supabase
-          .from("projects")
-          .select("*", {
-            count: "exact",
-            head: true,
-          }),
-
-        supabase
-          .from("certificates")
-          .select("*", {
-            count: "exact",
-            head: true,
-          }),
-
-        supabase
-          .from("comments")
-          .select("*", {
-            count: "exact",
-            head: true,
-          }),
-
-        supabase
-          .from("comments")
-          .select("*", {
-            count: "exact",
-            head: true,
-          })
-          .eq("is_pinned", true),
-
-        supabase
-          .from("comments")
-          .select("*")
-          .order("created_at", {
-            ascending: false,
-          })
-          .limit(30),
-      ]);
+      const data = await loadDashboardData();
 
       setStats({
-        projects: projectsRes.count || 0,
-        certificates: certificatesRes.count || 0,
-        comments: commentsRes.count || 0,
-        pinned: pinnedRes.count || 0,
+        projects: data.projects,
+        certificates: data.certificates,
+        comments: data.comments,
+        pinned: data.pinned,
       });
 
-      setRecentComments(recentCommentsRes.data || []);
+      setRecentComments(data.recentComments || []);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     }
@@ -226,7 +235,7 @@ export default function DashboardPage() {
                 </div>
 
                 <span className="text-xs text-white/35">
-                  Live DB
+                  Live Data
                 </span>
               </div>
 
@@ -242,7 +251,7 @@ export default function DashboardPage() {
                 ) : (
                   recentComments.map((comment, i) => (
                     <div
-                      key={i}
+                      key={comment.id ?? i}
                       className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4 hover:border-white/20 hover:bg-white/[0.05] transition-all duration-300"
                     >
                       <div className="flex items-start justify-between gap-3">

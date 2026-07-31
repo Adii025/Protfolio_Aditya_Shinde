@@ -5,57 +5,49 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/app/admin/Sidebar";
 import { Plus } from "lucide-react";
 import AddProjectModal from "./AddProjectModal";
-import { supabase } from "@/lib/supabase";
+
+type Project = {
+  id: string;
+  title: string;
+  description: string;
+  live_url: string | null;
+  github_url: string | null;
+  technologies: string;
+  key_features: string;
+  image_url: string | null;
+  image_urls: string[];
+  created_at: string;
+};
 
 export default function ProjectsPage() {
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchProjects();
-
-    const channel = supabase
-      .channel("projects-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "projects",
-        },
-        () => {
-          fetchProjects();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const fetchProjects = async () => {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*");
+    try {
+      const res = await fetch("/api/admin/projects", {
+        cache: "no-store",
+      });
 
-    if (!error && data) {
-      const sortedProjects = data.sort(
-        (a, b) =>
-          new Date(a.created_at).getTime() -
-          new Date(b.created_at).getTime()
-      );
+      if (!res.ok) throw new Error("Failed to load projects");
 
-      setProjects(sortedProjects);
+      const data = await res.json();
+      setProjects(data);
+    } catch (err) {
+      console.error("Failed to fetch projects:", err);
     }
 
     setLoading(false);
   };
 
-  const handleAdd = (newProject: any) => {
+  const handleAdd = (newProject: Project) => {
     setProjects((prev) => {
       const updated = [...prev, newProject];
 

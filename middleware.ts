@@ -1,49 +1,22 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
-
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            res.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
+export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // ✅ biarin login page lewat
+  // Let the login page through always
   if (pathname === "/admin/login") {
-    return res;
+    return NextResponse.next();
   }
 
-  // 🔒 protect admin page selain login
+  // Protect every other /admin/* route
+  const session = req.cookies.get("admin_session");
+
   if (!session && pathname.startsWith("/admin")) {
     return NextResponse.redirect(new URL("/admin/login", req.url));
   }
 
-  return res;
+  return NextResponse.next();
 }
 
 export const config = {

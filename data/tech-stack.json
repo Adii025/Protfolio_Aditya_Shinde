@@ -1,0 +1,68 @@
+[
+  {
+    "id": "1785486611218-3elhgdj",
+    "name": "Java",
+    "logo_url": "/uploads/1785486611185-9y402y-Java.png",
+    "created_at": "2026-07-31T08:30:11.218Z"
+  },
+  {
+    "id": "1785488677432-6dslr4r",
+    "name": "HTML",
+    "logo_url": "/uploads/1785488677273-qa9p8m-Html.png",
+    "created_at": "2026-07-31T09:04:37.432Z"
+  },
+  {
+    "id": "1785488687916-1w1k9nd",
+    "name": "CSS",
+    "logo_url": "/uploads/1785488687863-5rzkdc-css.png",
+    "created_at": "2026-07-31T09:04:47.916Z"
+  },
+  {
+    "id": "1785488710634-6y9wsxh",
+    "name": "JAVASCRIPT",
+    "logo_url": "/uploads/1785488710596-w4iw9w-js.png",
+    "created_at": "2026-07-31T09:05:10.634Z"
+  },
+  {
+    "id": "1785488725566-dzzsaqd",
+    "name": "REACT.JS",
+    "logo_url": "/uploads/1785488725511-npnfpc-react.jpg",
+    "created_at": "2026-07-31T09:05:25.566Z"
+  },
+  {
+    "id": "1785488738718-oq0fzn5",
+    "name": "SQL",
+    "logo_url": "/uploads/1785488738663-wjtjx2-dql.png",
+    "created_at": "2026-07-31T09:05:38.718Z"
+  },
+  {
+    "id": "1785488752219-rvxgz4z",
+    "name": "PL/SQL",
+    "logo_url": "/uploads/1785488752179-xg9tnd-pl-sql.jpg",
+    "created_at": "2026-07-31T09:05:52.219Z"
+  },
+  {
+    "id": "1785488769739-m0sfm3o",
+    "name": "JDBC",
+    "logo_url": "/uploads/1785488769707-i31ddh-jdbc.png",
+    "created_at": "2026-07-31T09:06:09.739Z"
+  },
+  {
+    "id": "1785488780314-ezs6ahs",
+    "name": "HIBERNET",
+    "logo_url": "/uploads/1785488780263-l95956-Hibernet.jpg",
+    "created_at": "2026-07-31T09:06:20.314Z"
+  },
+  {
+    "id": "1785488796666-56ju1ix",
+    "name": "SERVLET",
+    "logo_url": "/uploads/1785488796600-jbctwv-servlet.jpg",
+    "created_at": "2026-07-31T09:06:36.666Z"
+  },
+  {
+    "id": "1785488808804-bcluo0l",
+    "name": "SPRINGBOOT",
+    "logo_url": "/uploads/1785488808723-jv4kjo-springboot.png",
+    "created_at": "2026-07-31T09:06:48.804Z"
+  }
+]
