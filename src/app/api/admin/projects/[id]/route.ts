@@ -1,45 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "projects.json");
-
-type Project = {
-  id: string;
-  title: string;
-  description: string;
-  live_url: string | null;
-  github_url: string | null;
-  technologies: string;
-  key_features: string;
-  image_url: string | null;
-  image_urls: string[];
-  created_at: string;
-};
-
-async function ensureDataFile() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    await fs.writeFile(DATA_FILE, "[]", "utf-8");
-  }
-}
-
-async function readProjects(): Promise<Project[]> {
-  await ensureDataFile();
-  const raw = await fs.readFile(DATA_FILE, "utf-8");
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-}
-
-async function writeProjects(projects: Project[]) {
-  await ensureDataFile();
-  await fs.writeFile(DATA_FILE, JSON.stringify(projects, null, 2), "utf-8");
+function toArray(value: string | string[] | undefined): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) return value;
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export async function GET(
@@ -47,14 +15,18 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const projects = await readProjects();
-  const project = projects.find((p) => p.id === id);
 
-  if (!project) {
+  const { data, error } = await supabaseAdmin
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  return NextResponse.json(project);
+  return NextResponse.json(data);
 }
 
 export async function DELETE(
@@ -62,14 +34,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const projects = await readProjects();
-  const filtered = projects.filter((p) => p.id !== id);
 
-  if (filtered.length === projects.length) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  const { error } = await supabaseAdmin.from("projects").delete().eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await writeProjects(filtered);
   return NextResponse.json({ success: true });
 }
 
@@ -79,15 +50,29 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const projects = await readProjects();
 
-  const index = projects.findIndex((p) => p.id === id);
-  if (index === -1) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  const updateData: Record<string, unknown> = { ...body };
+  if (body.technologies !== undefined) {
+    updateData.technologies = toArray(body.technologies);
+  }
+  if (body.key_features !== undefined) {
+    updateData.key_features = toArray(body.key_features);
+  }
+  delete updateData.id;
+
+  const { data, error } = await supabaseAdmin
+    .from("projects")
+    .update(updateData)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json(
+      { error: error?.message || "Project not found" },
+      { status: error ? 500 : 404 }
+    );
   }
 
-  projects[index] = { ...projects[index], ...body, id };
-  await writeProjects(projects);
-
-  return NextResponse.json(projects[index]);
+  return NextResponse.json(data);
 }
