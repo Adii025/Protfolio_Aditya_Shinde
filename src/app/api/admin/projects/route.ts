@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabaseServer";
+import { supabaseAdmin } from "@/lib/supabaseAdmin"; // ⬅️ adjust path if you place this file elsewhere
 
 type ProjectInput = {
   title: string;
@@ -22,9 +22,7 @@ function toArray(value: string | string[] | undefined): string[] {
 }
 
 export async function GET() {
-  const supabase = await createSupabaseServer();
-
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("projects")
     .select("*")
     .order("created_at", { ascending: true });
@@ -56,9 +54,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabase = await createSupabaseServer();
-
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("projects")
     .insert({
       title,
