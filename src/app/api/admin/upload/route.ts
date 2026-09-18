@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 const ALLOWED_TYPES = [
   "image/png",
@@ -12,16 +8,7 @@ const ALLOWED_TYPES = [
   "image/gif",
 ];
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
-function safeFileName(originalName: string) {
-  const ext = path.extname(originalName).toLowerCase();
-  const base = path
-    .basename(originalName, ext)
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .slice(0, 50);
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${base}${ext}`;
-}
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB — kept smaller since base64 adds ~33% size overhead in the DB
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -30,8 +17,6 @@ export async function POST(req: NextRequest) {
   if (!files || files.length === 0) {
     return NextResponse.json({ error: "No files provided" }, { status: 400 });
   }
-
-  await fs.mkdir(UPLOAD_DIR, { recursive: true });
 
   const urls: string[] = [];
 
@@ -44,17 +29,22 @@ export async function POST(req: NextRequest) {
     }
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File too large: ${file.name}` },
+        { error: `File too large: ${file.name} (max 2MB)` },
         { status: 400 }
       );
     }
 
-    const fileName = safeFileName(file.name);
-    const filePath = path.join(UPLOAD_DIR, fileName);
     const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(filePath, buffer);
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    urls.push(`/uploads/${fileName}`);
+    // This data URL can be:
+    // (a) returned directly and saved into your certificates/projects table
+    //     as the value for an `image` column (type: text)
+    // (b) rendered directly in an <img src={dataUrl} /> tag on your site —
+    //     no separate file URL needed at all
+
+    urls.push(dataUrl);
   }
 
   return NextResponse.json({ urls });
