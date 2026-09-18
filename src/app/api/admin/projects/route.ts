@@ -1,57 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { createSupabaseServer } from "@/lib/supabaseServer";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "projects.json");
-
-type Project = {
-  id: string;
+type ProjectInput = {
   title: string;
   description: string;
-  live_url: string | null;
-  github_url: string | null;
-  technologies: string;
-  key_features: string;
-  image_url: string | null;
-  image_urls: string[];
-  created_at: string;
+  live_url?: string | null;
+  github_url?: string | null;
+  technologies?: string | string[];
+  key_features?: string | string[];
+  image_url?: string | null;
+  image_urls?: string[];
 };
 
-async function ensureDataFile() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    await fs.writeFile(DATA_FILE, "[]", "utf-8");
-  }
-}
-
-async function readProjects(): Promise<Project[]> {
-  await ensureDataFile();
-  const raw = await fs.readFile(DATA_FILE, "utf-8");
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-}
-
-async function writeProjects(projects: Project[]) {
-  await ensureDataFile();
-  await fs.writeFile(DATA_FILE, JSON.stringify(projects, null, 2), "utf-8");
+function toArray(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export async function GET() {
-  const projects = await readProjects();
-  const sorted = [...projects].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
-  return NextResponse.json(sorted);
+  const supabase = await createSupabaseServer();
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data);
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body: ProjectInput = await req.json();
   const {
     title,
     description,
@@ -70,22 +56,26 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const projects = await readProjects();
-  const newProject: Project = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    title,
-    description,
-    live_url: live_url || null,
-    github_url: github_url || null,
-    technologies: technologies || "",
-    key_features: key_features || "",
-    image_url: image_url || null,
-    image_urls: image_urls || [],
-    created_at: new Date().toISOString(),
-  };
+  const supabase = await createSupabaseServer();
 
-  projects.push(newProject);
-  await writeProjects(projects);
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({
+      title,
+      description,
+      live_url: live_url || null,
+      github_url: github_url || null,
+      technologies: toArray(technologies),
+      key_features: toArray(key_features),
+      image_url: image_url || null,
+      image_urls: image_urls || [],
+    })
+    .select()
+    .single();
 
-  return NextResponse.json(newProject, { status: 201 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data, { status: 201 });
 }
